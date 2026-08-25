@@ -32,7 +32,6 @@
     .material-symbols-outlined.filled {
       font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
-    /* Reaction picker popover */
     .reaction-picker {
       display: none;
     }
@@ -57,6 +56,12 @@
 
   <!-- Toast Notification Container -->
   <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Hidden File Input for Group Uploads -->
+  <input type="file" id="group-file-input" accept=".pdf,image/*" class="hidden" onchange="handleGroupFileUpload(event)"/>
+
+  <!-- Hidden File Input for DM Uploads -->
+  <input type="file" id="dm-file-input" accept=".pdf,image/*" class="hidden" onchange="handleDMFileUpload(event)"/>
 
   <!-- APP ROOT -->
   <div id="app" class="flex flex-col min-h-screen">
@@ -193,11 +198,10 @@
 
     // INITIAL STATE & STORAGE KEYS
     let currentUser = JSON.parse(localStorage.getItem('scholarshare_current_user')) || null;
-    let currentView = currentUser ? 'home' : 'login'; // 'home', 'group', 'dm'
+    let currentView = currentUser ? 'home' : 'login';
     let selectedDMUser = null;
     let vaultFilter = 'all';
 
-    // Profiles stored in localStorage if updated
     let userProfiles = JSON.parse(localStorage.getItem('scholarshare_profiles')) || {};
     USERS.forEach(u => {
       if (!userProfiles[u.name]) {
@@ -205,24 +209,20 @@
       }
     });
 
-    // Dark Mode preference
     let darkMode = localStorage.getItem('scholarshare_dark_mode') === 'true';
 
-    // Group Info
     let groupInfo = JSON.parse(localStorage.getItem('scholarshare_group_info')) || {
       dp: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=200&q=80",
       name: "Mathematics / ScholarShare Workspace",
       description: "Official collaboration channel for Mathematics homework, research papers, and discussions."
     };
 
-    // Initial Notifications
     let notifications = JSON.parse(localStorage.getItem('scholarshare_notifications')) || [
       { id: 1, type: "homework", title: "New Assignment Posted", body: "Abhinav posted 'Advanced Calculus Problem Set #4.pdf'", time: "10m ago", read: false },
       { id: 2, type: "system", title: "System Update", body: "ScholarShare Workspace upgraded with strict role permissions.", time: "1h ago", read: false },
       { id: 3, type: "alert", title: "Assignment Alert", body: "Linear Algebra Homework #3 is due tomorrow at 11:59 PM.", time: "3h ago", read: false }
     ];
 
-    // Initial Group Messages
     let groupMessages = JSON.parse(localStorage.getItem('scholarshare_group_messages')) || [
       {
         id: "gm_1",
@@ -250,7 +250,6 @@
       }
     ];
 
-    // Initial DM Threads
     let dmThreads = JSON.parse(localStorage.getItem('scholarshare_dm_threads')) || {
       "Satvik Tripathi_Abhinav": [
         { id: "dm_1", sender: "Satvik Tripathi", text: "Hello Abhinav, I uploaded my homework solution for review.", file: { name: "Satvik_Calculus_Sol.pdf", type: "pdf", size: "1.8 MB" }, timestamp: "Yesterday" },
@@ -262,7 +261,6 @@
       ]
     };
 
-    // UTILS & HELPERS
     function saveState() {
       localStorage.setItem('scholarshare_current_user', JSON.stringify(currentUser));
       localStorage.setItem('scholarshare_dark_mode', darkMode);
@@ -309,7 +307,7 @@
       showToast("Action Restricted: Requires Admin Privileges.", "error");
     }
 
-    // AUTHENTICATION LOGIC
+    // AUTHENTICATION LOGIC WITH MINIMALIST LOGIN INTERFACE
     function login(username, password) {
       const user = USERS.find(u => u.name.trim().toLowerCase() === username.trim().toLowerCase() && u.password === password.trim());
       if (!user) {
@@ -438,7 +436,6 @@
       const badge = document.getElementById('vault-count-badge');
       if (!grid) return;
 
-      // Collect files from group messages & DMs
       let files = [];
       groupMessages.forEach(m => {
         if (m.file) files.push({ ...m.file, sender: m.sender, date: m.timestamp });
@@ -555,6 +552,29 @@
       renderGroupPage();
     }
 
+    // LOCAL FILE UPLOAD FOR GROUP WORKSPACE
+    function handleGroupFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (currentUser.role !== 'Admin') {
+        showGuardrailAlert();
+        return;
+      }
+
+      const fileType = file.name.endsWith('.pdf') ? 'pdf' : (file.type.startsWith('image/') ? 'image' : 'doc');
+      const fileSize = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+      const fileObj = {
+        name: file.name,
+        type: fileType,
+        size: fileSize
+      };
+
+      sendGroupMessageText(`Uploaded file: ${file.name}`, fileObj);
+      event.target.value = '';
+    }
+
     function toggleReaction(msgId, emoji) {
       if (!currentUser) return;
       const msg = groupMessages.find(m => m.id === msgId);
@@ -577,7 +597,7 @@
       renderGroupPage();
     }
 
-    // DM MESSAGING LOGIC
+    // DM MESSAGING & LOCAL FILE UPLOAD LOGIC
     function getDMKey(u1, u2) {
       const sorted = [u1, u2].sort();
       return `${sorted[0]}_${sorted[1]}`;
@@ -587,7 +607,6 @@
       if (!currentUser) return;
       if (!text.trim() && !file) return;
 
-      // Guardrail check for members
       const recipient = USERS.find(u => u.name === recipientName);
       if (currentUser.role === 'Member' && recipient.role !== 'Admin') {
         showGuardrailAlert();
@@ -609,9 +628,26 @@
       renderDMPage();
     }
 
+    function handleDMFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file || !selectedDMUser) return;
+
+      const fileType = file.name.endsWith('.pdf') ? 'pdf' : (file.type.startsWith('image/') ? 'image' : 'doc');
+      const fileSize = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+      const fileObj = {
+        name: file.name,
+        type: fileType,
+        size: fileSize
+      };
+
+      sendDirectMessage(selectedDMUser.name, `Sent file: ${file.name}`, fileObj);
+      event.target.value = '';
+    }
+
     // VIEW RENDERERS
 
-    // 1. LOGIN SCREEN
+    // 1. MINIMALIST & SECURE LOGIN SCREEN
     function renderLoginScreen() {
       return `
         <div class="flex-1 flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white">
@@ -626,15 +662,13 @@
 
             <form onsubmit="handleLoginSubmit(event)" class="space-y-5">
               <div>
-                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select User Account</label>
-                <select id="login-user-select" class="w-full px-4 py-3 bg-slate-900/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                  ${USERS.map(u => `<option value="${u.name}">${u.name} (${u.role})</option>`).join('')}
-                </select>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Username</label>
+                <input type="text" id="login-username-input" required placeholder="Enter your full name" class="w-full px-4 py-3 bg-slate-900/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"/>
               </div>
 
               <div>
-                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Password Passcode</label>
-                <input type="password" id="login-password-input" required placeholder="Enter passcode" class="w-full px-4 py-3 bg-slate-900/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"/>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Password</label>
+                <input type="password" id="login-password-input" required placeholder="Enter password passcode" class="w-full px-4 py-3 bg-slate-900/80 border border-slate-600 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"/>
               </div>
 
               <button type="submit" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 font-semibold rounded-xl text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2">
@@ -642,17 +676,6 @@
                 <span class="material-symbols-outlined text-lg">arrow_forward</span>
               </button>
             </form>
-
-            <div class="mt-8 pt-6 border-t border-slate-700/60 text-xs text-slate-400">
-              <p class="font-semibold text-slate-300 mb-2">Allowlist Quick Reference:</p>
-              <ul class="space-y-1 font-mono text-[11px] bg-slate-900/50 p-3 rounded-lg border border-slate-700/40">
-                <li class="flex justify-between"><span>Abhinav (Admin)</span><span class="text-blue-400">7474</span></li>
-                <li class="flex justify-between"><span>Vatsal (Admin)</span><span class="text-blue-400">9305</span></li>
-                <li class="flex justify-between"><span>Adarsh (Admin)</span><span class="text-blue-400">8112</span></li>
-                <li class="flex justify-between"><span>Satvik Tripathi (Member)</span><span class="text-emerald-400">9151</span></li>
-                <li class="flex justify-between"><span>Shivam (Member)</span><span class="text-emerald-400">9792</span></li>
-              </ul>
-            </div>
           </div>
         </div>
       `;
@@ -664,7 +687,6 @@
       const unreadCount = notifications.filter(n => !n.read).length;
 
       return `
-        <!-- Top Nav Header -->
         <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30">
           <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -677,16 +699,13 @@
               </div>
             </div>
 
-            <!-- Profile Bar & Actions -->
             <div class="flex items-center gap-3">
-              <!-- Dark Mode Toggle -->
               <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
                 <span class="material-symbols-outlined">${darkMode ? 'light_mode' : 'dark_mode'}</span>
               </button>
 
               <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
 
-              <!-- Profile Badge -->
               <div class="flex items-center gap-3 bg-slate-100 dark:bg-slate-700/50 p-1.5 pr-3 rounded-full border border-slate-200 dark:border-slate-600">
                 <img src="${prof.avatar}" alt="${currentUser.name}" class="w-8 h-8 rounded-full object-cover border border-blue-500"/>
                 <div class="text-left hidden sm:block">
@@ -705,9 +724,7 @@
           </div>
         </header>
 
-        <!-- Main Content Area -->
         <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-8 space-y-8">
-          <!-- Profile Welcome Card -->
           <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
             <div class="flex items-center gap-4">
               <img src="${prof.avatar}" class="w-16 h-16 rounded-2xl object-cover border-2 border-white/40 shadow-lg"/>
@@ -724,7 +741,7 @@
             </button>
           </div>
 
-          <!-- Command Bar (WhatsApp style) -->
+          <!-- WhatsApp Style Command Bar -->
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-md space-y-3">
             <div class="flex items-center justify-between">
               <label class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
@@ -752,7 +769,6 @@
             </form>
           </div>
 
-          <!-- Navigation Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div onclick="currentView='group'; render();" class="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-blue-500 transition-all cursor-pointer">
               <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -823,7 +839,6 @@
       const isAdmin = currentUser.role === 'Admin';
 
       return `
-        <!-- Top Nav Bar -->
         <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
           <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -837,7 +852,6 @@
               </div>
             </div>
 
-            <!-- Top Three-Dot Navigation Menu -->
             <div class="flex items-center gap-2 relative">
               <button onclick="openGroupInfoModal()" class="px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 rounded-lg flex items-center gap-1 border border-blue-200 dark:border-blue-800">
                 <span class="material-symbols-outlined text-base">info</span> Group Info
@@ -867,10 +881,8 @@
           </div>
         </header>
 
-        <!-- Messages Chat View -->
         <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col justify-between space-y-4">
           <div class="space-y-4 flex-1 overflow-y-auto pb-4">
-            <!-- Pinned Notice -->
             <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl p-3 text-xs text-blue-900 dark:text-blue-200 flex items-center gap-2">
               <span class="material-symbols-outlined text-blue-600">push_pin</span>
               <div>
@@ -878,16 +890,14 @@
               </div>
             </div>
 
-            <!-- Message Bubbles -->
             ${groupMessages.map(msg => renderGroupMessageBubble(msg)).join('')}
           </div>
 
-          <!-- Bottom Message Input Bar -->
           <div class="sticky bottom-4 z-20">
             ${isAdmin ? `
               <div class="bg-white dark:bg-slate-800 rounded-2xl p-3 border border-slate-200 dark:border-slate-700 shadow-xl space-y-2">
                 <form onsubmit="event.preventDefault(); sendGroupMessageText(document.getElementById('group-msg-input').value); document.getElementById('group-msg-input').value='';" class="flex items-center gap-2">
-                  <button type="button" onclick="triggerAdminPDFUpload()" class="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl" title="Upload Homework PDF">
+                  <button type="button" onclick="document.getElementById('group-file-input').click()" class="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl" title="Attach Local PDF or Image">
                     <span class="material-symbols-outlined text-xl">attach_file</span>
                   </button>
                   <input type="text" id="group-msg-input" placeholder="Write a message or homework announcement to group..." class="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"/>
@@ -948,7 +958,6 @@
                 </div>
               ` : ''}
 
-              <!-- Emoji Reactions Popover on Hover -->
               <div class="reaction-picker absolute -top-4 ${isSelf ? 'right-2' : 'left-2'} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-lg px-2 py-1 gap-1 z-10">
                 ${EMOJIS.map(e => `
                   <button onclick="toggleReaction('${msg.id}', '${e}')" class="hover:scale-125 transition-transform text-sm p-1">
@@ -958,7 +967,6 @@
               </div>
             </div>
 
-            <!-- Reaction Counts List Underneath -->
             ${reactionEntries.length > 0 ? `
               <div class="flex flex-wrap gap-1 mt-1 ${isSelf ? 'justify-end' : ''}">
                 ${reactionEntries.map(([emoji, users]) => {
@@ -982,24 +990,10 @@
       if (menu) menu.classList.toggle('hidden');
     }
 
-    function triggerAdminPDFUpload() {
-      if (currentUser.role !== 'Admin') {
-        showGuardrailAlert();
-        return;
-      }
-      const filename = prompt("Enter homework PDF name to upload:", "Calculus_Practice_Set.pdf");
-      if (filename) {
-        sendGroupMessageText("Uploaded new PDF document:", { name: filename, type: "pdf", size: "3.2 MB" });
-      }
-    }
-
     // 4. PAGE 3: DIRECT MESSAGES (DM PAGE)
     function renderDMPage() {
       const isAdmin = currentUser.role === 'Admin';
 
-      // Determine selectable candidates
-      // Members can ONLY DM Admin accounts (Abhinav, Vatsal, Adarsh)
-      // Admins can DM any member or co-admin
       const selectableUsers = USERS.filter(u => u.name !== currentUser.name && (isAdmin || u.role === 'Admin'));
 
       if (!selectedDMUser || (currentUser.role === 'Member' && selectedDMUser.role !== 'Admin')) {
@@ -1010,7 +1004,6 @@
       const messages = activeDMKey && dmThreads[activeDMKey] ? dmThreads[activeDMKey] : [];
 
       return `
-        <!-- Top Navigation -->
         <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm">
           <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -1031,9 +1024,7 @@
           </div>
         </header>
 
-        <!-- DM Layout -->
         <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col md:flex-row gap-4 h-[calc(100vh-5rem)]">
-          <!-- Sidebar: User List / Inbox Threads -->
           <div class="w-full md:w-72 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col shrink-0 overflow-hidden">
             <div class="p-4 border-b border-slate-200 dark:border-slate-700">
               <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1060,10 +1051,8 @@
             </div>
           </div>
 
-          <!-- Chat Conversation Window -->
           <div class="flex-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col overflow-hidden">
             ${selectedDMUser ? `
-              <!-- Active Thread Header -->
               <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                 <div class="flex items-center gap-3">
                   <img src="${userProfiles[selectedDMUser.name]?.avatar || selectedDMUser.avatar}" class="w-10 h-10 rounded-full object-cover border border-blue-500"/>
@@ -1077,9 +1066,8 @@
                 </div>
               </div>
 
-              <!-- Messages List -->
               <div class="flex-1 p-4 overflow-y-auto space-y-3">
-                ${messages.length === 0 ? `<div class="text-center py-10 text-xs text-slate-400">No messages yet. Send a message or homework PDF below.</div>` : ''}
+                ${messages.length === 0 ? `<div class="text-center py-10 text-xs text-slate-400">No messages yet. Send a message or attach a local PDF below.</div>` : ''}
                 ${messages.map(m => {
                   const isSelf = m.sender === currentUser.name;
                   return `
@@ -1102,10 +1090,9 @@
                 }).join('')}
               </div>
 
-              <!-- DM Input Bar -->
               <div class="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                 <form onsubmit="event.preventDefault(); sendDirectMessage('${selectedDMUser.name}', document.getElementById('dm-msg-input').value); document.getElementById('dm-msg-input').value='';" class="flex items-center gap-2">
-                  <button type="button" onclick="triggerDMPDFUpload()" class="p-2 text-slate-500 hover:text-blue-600 rounded-xl" title="Upload Homework Solution">
+                  <button type="button" onclick="document.getElementById('dm-file-input').click()" class="p-2 text-slate-500 hover:text-blue-600 rounded-xl" title="Attach Local Homework Solution PDF">
                     <span class="material-symbols-outlined text-xl">attach_file</span>
                   </button>
                   <input type="text" id="dm-msg-input" placeholder="Type direct message or submit homework..." class="flex-1 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"/>
@@ -1120,14 +1107,6 @@
           </div>
         </main>
       `;
-    }
-
-    function triggerDMPDFUpload() {
-      if (!selectedDMUser) return;
-      const filename = prompt("Enter homework PDF solution name:", "Homework_Submission.pdf");
-      if (filename) {
-        sendDirectMessage(selectedDMUser.name, "Submitted Homework Solution PDF:", { name: filename, type: "pdf", size: "2.1 MB" });
-      }
     }
 
     // MAIN RENDER CONTROLLER
@@ -1148,7 +1127,7 @@
 
     function handleLoginSubmit(e) {
       e.preventDefault();
-      const username = document.getElementById('login-user-select').value;
+      const username = document.getElementById('login-username-input').value;
       const password = document.getElementById('login-password-input').value;
       login(username, password);
     }

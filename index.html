@@ -227,6 +227,29 @@
 
     let dmThreads = JSON.parse(localStorage.getItem('scholarshare_dm_threads')) || {};
 
+    // REAL-TIME SYNC ACROSS TABS / WINDOWS
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'scholarshare_group_messages') {
+        groupMessages = JSON.parse(e.newValue || '[]');
+        if (currentView === 'group') render();
+      } else if (e.key === 'scholarshare_dm_threads') {
+        dmThreads = JSON.parse(e.newValue || '{}');
+        if (currentView === 'dm') render();
+      } else if (e.key === 'scholarshare_notifications') {
+        notifications = JSON.parse(e.newValue || '[]');
+        if (currentView === 'home') render();
+      } else if (e.key === 'scholarshare_profiles') {
+        userProfiles = JSON.parse(e.newValue || '{}');
+        render();
+      } else if (e.key === 'scholarshare_group_info') {
+        groupInfo = JSON.parse(e.newValue || '{}');
+        if (currentView === 'group') render();
+      } else if (e.key === 'scholarshare_dark_mode') {
+        darkMode = e.newValue === 'true';
+        applyDarkMode();
+      }
+    });
+
     function saveState() {
       localStorage.setItem('scholarshare_current_user', JSON.stringify(currentUser));
       localStorage.setItem('scholarshare_dark_mode', darkMode);

@@ -85,7 +85,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profile Picture URL</label>
-          <input type="url" id="profile-avatar-input" required placeholder="https://..." class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"/>
+          <input type="url" id="profile-avatar-input" placeholder="https://..." class="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"/>
         </div>
         <div>
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bio</label>
@@ -116,12 +116,14 @@
         <!-- Group DP & Description -->
         <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60">
           <div class="flex flex-col sm:flex-row items-center gap-4">
-            <img id="group-dp-img" src="" alt="Group DP" class="w-20 h-20 rounded-full object-cover border-2 border-blue-500 shadow-md"/>
+            <div id="group-dp-container" class="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-2xl border-2 border-blue-500 shadow-md shrink-0">
+              <span class="material-symbols-outlined text-3xl">groups</span>
+            </div>
             <div class="flex-1 text-center sm:text-left">
               <div class="flex items-center justify-center sm:justify-start gap-2">
-                <h4 id="group-name-display" class="font-bold text-lg text-slate-900 dark:text-slate-100">Mathematics / ScholarShare Workspace</h4>
+                <h4 id="group-name-display" class="font-bold text-lg text-slate-900 dark:text-slate-100">ScholarShare Workspace</h4>
               </div>
-              <p id="group-desc-display" class="text-sm text-slate-600 dark:text-slate-400 mt-1">Official collaboration channel for Mathematics homework, research papers, and discussions.</p>
+              <p id="group-desc-display" class="text-sm text-slate-600 dark:text-slate-400 mt-1">Official collaboration channel for homework, research, and academic discussions.</p>
             </div>
             <button id="edit-group-info-btn" onclick="toggleEditGroupInfo()" class="px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 rounded-lg flex items-center gap-1 border border-blue-200 dark:border-blue-800">
               <span class="material-symbols-outlined text-sm">edit</span> Edit Group Info
@@ -186,11 +188,11 @@
   <script>
     // ALLOWLIST & USER DATABASE
     const USERS = [
-      { name: "Abhinav", password: "7474", role: "Admin", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80", bio: "Senior Admin & Academic Lead" },
-      { name: "Vatsal", password: "9305", role: "Admin", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80", bio: "Mathematics Admin & Quiz Coordinator" },
-      { name: "Adarsh", password: "8112", role: "Admin", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80", bio: "Admin & Homework Validator" },
-      { name: "Satvik Tripathi", password: "9151", role: "Member", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=150&q=80", bio: "Mathematics Scholar & Student Member" },
-      { name: "Shivam", password: "9792", role: "Member", avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&q=80", bio: "Student & Peer Collaborator" }
+      { name: "Abhinav", password: "7474", role: "Admin", avatar: "", bio: "" },
+      { name: "Vatsal", password: "9305", role: "Admin", avatar: "", bio: "" },
+      { name: "Adarsh", password: "8112", role: "Admin", avatar: "", bio: "" },
+      { name: "Satvik Tripathi", password: "9151", role: "Member", avatar: "", bio: "" },
+      { name: "Shivam", password: "9792", role: "Member", avatar: "", bio: "" }
     ];
 
     // EMOJI ALLOWLIST
@@ -205,61 +207,25 @@
     let userProfiles = JSON.parse(localStorage.getItem('scholarshare_profiles')) || {};
     USERS.forEach(u => {
       if (!userProfiles[u.name]) {
-        userProfiles[u.name] = { avatar: u.avatar, bio: u.bio };
+        userProfiles[u.name] = { avatar: u.avatar || "", bio: u.bio || "" };
       }
     });
 
     let darkMode = localStorage.getItem('scholarshare_dark_mode') === 'true';
 
     let groupInfo = JSON.parse(localStorage.getItem('scholarshare_group_info')) || {
-      dp: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=200&q=80",
-      name: "Mathematics / ScholarShare Workspace",
-      description: "Official collaboration channel for Mathematics homework, research papers, and discussions."
+      dp: "",
+      name: "ScholarShare Workspace",
+      description: "Official collaboration channel for homework, research, and academic discussions."
     };
 
     let notifications = JSON.parse(localStorage.getItem('scholarshare_notifications')) || [
-      { id: 1, type: "homework", title: "New Assignment Posted", body: "Abhinav posted 'Advanced Calculus Problem Set #4.pdf'", time: "10m ago", read: false },
-      { id: 2, type: "system", title: "System Update", body: "ScholarShare Workspace upgraded with strict role permissions.", time: "1h ago", read: false },
-      { id: 3, type: "alert", title: "Assignment Alert", body: "Linear Algebra Homework #3 is due tomorrow at 11:59 PM.", time: "3h ago", read: false }
+      { id: 1, type: "system", title: "System Update", body: "ScholarShare Workspace active.", time: "1h ago", read: false }
     ];
 
-    let groupMessages = JSON.parse(localStorage.getItem('scholarshare_group_messages')) || [
-      {
-        id: "gm_1",
-        sender: "Abhinav",
-        text: "Welcome team! Please submit all Mathematics assignment queries in this channel.",
-        file: null,
-        timestamp: "09:30 AM",
-        reactions: { "👍": ["Vatsal", "Satvik Tripathi"], "❤️": ["Adarsh"] }
-      },
-      {
-        id: "gm_2",
-        sender: "Vatsal",
-        text: "Here is the homework PDF for Chapter 5 Calculus:",
-        file: { name: "Calculus_Ch5_Homework.pdf", type: "pdf", size: "2.4 MB" },
-        timestamp: "10:15 AM",
-        reactions: { "👍": ["Shivam"], "😮": ["Satvik Tripathi"] }
-      },
-      {
-        id: "gm_3",
-        sender: "Adarsh",
-        text: "Reference diagram for Problem 3 geometry question:",
-        file: { name: "Geometry_Diagram.png", type: "image", size: "1.1 MB", url: "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=400&q=80" },
-        timestamp: "11:05 AM",
-        reactions: { "❤️": ["Abhinav", "Shivam"] }
-      }
-    ];
+    let groupMessages = JSON.parse(localStorage.getItem('scholarshare_group_messages')) || [];
 
-    let dmThreads = JSON.parse(localStorage.getItem('scholarshare_dm_threads')) || {
-      "Satvik Tripathi_Abhinav": [
-        { id: "dm_1", sender: "Satvik Tripathi", text: "Hello Abhinav, I uploaded my homework solution for review.", file: { name: "Satvik_Calculus_Sol.pdf", type: "pdf", size: "1.8 MB" }, timestamp: "Yesterday" },
-        { id: "dm_2", sender: "Abhinav", text: "Thanks Satvik! I reviewed it, step 3 is very neat.", file: null, timestamp: "Today 09:10 AM" }
-      ],
-      "Shivam_Vatsal": [
-        { id: "dm_3", sender: "Shivam", text: "Hi Vatsal, can I get feedback on question 2?", file: null, timestamp: "Yesterday 04:20 PM" },
-        { id: "dm_4", sender: "Vatsal", text: "Sure Shivam, feel free to attach your PDF copy here.", file: null, timestamp: "Yesterday 04:45 PM" }
-      ]
-    };
+    let dmThreads = JSON.parse(localStorage.getItem('scholarshare_dm_threads')) || {};
 
     function saveState() {
       localStorage.setItem('scholarshare_current_user', JSON.stringify(currentUser));
@@ -329,12 +295,20 @@
       render();
     }
 
+    function renderAvatarHTML(avatarUrl, name, sizeClasses = "w-9 h-9 text-xs") {
+      if (avatarUrl && avatarUrl.trim()) {
+        return `<img src="${avatarUrl}" alt="${name}" class="${sizeClasses} rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"/>`;
+      }
+      const initial = name ? name.charAt(0).toUpperCase() : '?';
+      return `<div class="${sizeClasses} rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0 border border-blue-500">${initial}</div>`;
+    }
+
     // PROFILE MODAL FUNCTIONS
     function openProfileModal() {
       if (!currentUser) return;
       document.getElementById('profile-name-input').value = currentUser.name;
-      document.getElementById('profile-avatar-input').value = userProfiles[currentUser.name]?.avatar || currentUser.avatar;
-      document.getElementById('profile-bio-input').value = userProfiles[currentUser.name]?.bio || currentUser.bio;
+      document.getElementById('profile-avatar-input').value = userProfiles[currentUser.name]?.avatar || "";
+      document.getElementById('profile-bio-input').value = userProfiles[currentUser.name]?.bio || "";
       document.getElementById('profile-modal').classList.remove('hidden');
     }
 
@@ -348,25 +322,29 @@
       const newAvatar = document.getElementById('profile-avatar-input').value.trim();
       const newBio = document.getElementById('profile-bio-input').value.trim();
 
-      if (newAvatar) {
-        userProfiles[currentUser.name] = {
-          avatar: newAvatar,
-          bio: newBio
-        };
-        saveState();
-        closeProfileModal();
-        showToast("Profile updated successfully", "success");
-        render();
-      }
+      userProfiles[currentUser.name] = {
+        avatar: newAvatar,
+        bio: newBio
+      };
+      saveState();
+      closeProfileModal();
+      showToast("Profile updated successfully", "success");
+      render();
     }
 
     // GROUP INFO MODAL FUNCTIONS
     function openGroupInfoModal() {
-      document.getElementById('group-dp-img').src = groupInfo.dp;
-      document.getElementById('group-name-display').innerText = groupInfo.name;
-      document.getElementById('group-desc-display').innerText = groupInfo.description;
-      document.getElementById('group-dp-input').value = groupInfo.dp;
-      document.getElementById('group-desc-input').value = groupInfo.description;
+      const dpContainer = document.getElementById('group-dp-container');
+      if (groupInfo.dp && groupInfo.dp.trim()) {
+        dpContainer.innerHTML = `<img src="${groupInfo.dp}" alt="Group DP" class="w-full h-full rounded-full object-cover"/>`;
+      } else {
+        dpContainer.innerHTML = `<span class="material-symbols-outlined text-3xl">groups</span>`;
+      }
+
+      document.getElementById('group-name-display').innerText = groupInfo.name || "ScholarShare Workspace";
+      document.getElementById('group-desc-display').innerText = groupInfo.description || "Official collaboration channel.";
+      document.getElementById('group-dp-input').value = groupInfo.dp || "";
+      document.getElementById('group-desc-input').value = groupInfo.description || "";
 
       renderMediaVault();
       renderRoster();
@@ -405,12 +383,11 @@
       const newDp = document.getElementById('group-dp-input').value.trim();
       const newDesc = document.getElementById('group-desc-input').value.trim();
 
-      if (newDp) groupInfo.dp = newDp;
+      groupInfo.dp = newDp;
       if (newDesc) groupInfo.description = newDesc;
 
       saveState();
-      document.getElementById('group-dp-img').src = groupInfo.dp;
-      document.getElementById('group-desc-display').innerText = groupInfo.description;
+      openGroupInfoModal();
       toggleEditGroupInfo(false);
       showToast("Group information updated", "success");
       render();
@@ -486,7 +463,7 @@
         return `
           <div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700/50">
             <div class="flex items-center gap-3">
-              <img src="${prof.avatar}" alt="${u.name}" class="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700"/>
+              ${renderAvatarHTML(prof.avatar, u.name, "w-9 h-9 text-xs")}
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-semibold text-xs text-slate-900 dark:text-slate-100">${u.name}</span>
@@ -494,7 +471,7 @@
                     ? `<span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">ADMIN</span>`
                     : `<span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">MEMBER</span>`}
                 </div>
-                <p class="text-[11px] text-slate-400 truncate max-w-[200px]">${prof.bio}</p>
+                <p class="text-[11px] text-slate-400 truncate max-w-[200px]">${prof.bio || 'Scholar member'}</p>
               </div>
             </div>
             <div class="text-right">
@@ -707,7 +684,7 @@
               <div class="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
 
               <div class="flex items-center gap-3 bg-slate-100 dark:bg-slate-700/50 p-1.5 pr-3 rounded-full border border-slate-200 dark:border-slate-600">
-                <img src="${prof.avatar}" alt="${currentUser.name}" class="w-8 h-8 rounded-full object-cover border border-blue-500"/>
+                ${renderAvatarHTML(prof.avatar, currentUser.name, "w-8 h-8 text-xs")}
                 <div class="text-left hidden sm:block">
                   <div class="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">${currentUser.name}</div>
                   <div class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">${currentUser.role}</div>
@@ -727,7 +704,7 @@
         <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-8 space-y-8">
           <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6">
             <div class="flex items-center gap-4">
-              <img src="${prof.avatar}" class="w-16 h-16 rounded-2xl object-cover border-2 border-white/40 shadow-lg"/>
+              ${renderAvatarHTML(prof.avatar, currentUser.name, "w-16 h-16 text-xl")}
               <div>
                 <div class="flex items-center gap-2">
                   <h2 class="text-xl font-bold">${currentUser.name}</h2>
@@ -778,7 +755,7 @@
                 <span>Group Workspace</span>
                 <span class="material-symbols-outlined text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all">arrow_forward</span>
               </h3>
-              <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Access Mathematics group channel, view shared PDFs, react to messages, and check roster details.</p>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">Access group channel, view shared files, react to messages, and check roster details.</p>
             </div>
 
             <div onclick="currentView='dm'; render();" class="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-purple-500 transition-all cursor-pointer">
@@ -845,10 +822,10 @@
               <button onclick="currentView='home'; render();" class="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg">
                 <span class="material-symbols-outlined">arrow_back</span>
               </button>
-              <img src="${groupInfo.dp}" alt="Group DP" class="w-9 h-9 rounded-full object-cover border border-blue-500"/>
+              ${groupInfo.dp ? `<img src="${groupInfo.dp}" alt="Group DP" class="w-9 h-9 rounded-full object-cover border border-blue-500"/>` : `<div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-500"><span class="material-symbols-outlined text-xl">groups</span></div>`}
               <div>
-                <h2 class="font-bold text-sm text-slate-900 dark:text-white leading-tight">${groupInfo.name}</h2>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">5 Members • Mathematics Channel</p>
+                <h2 class="font-bold text-sm text-slate-900 dark:text-white leading-tight">${groupInfo.name || "ScholarShare Workspace"}</h2>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">5 Members • Group Channel</p>
               </div>
             </div>
 
@@ -890,7 +867,7 @@
               </div>
             </div>
 
-            ${groupMessages.map(msg => renderGroupMessageBubble(msg)).join('')}
+            ${groupMessages.length === 0 ? `<div class="text-center py-10 text-xs text-slate-400">No group messages yet.</div>` : groupMessages.map(msg => renderGroupMessageBubble(msg)).join('')}
           </div>
 
           <div class="sticky bottom-4 z-20">
@@ -900,7 +877,7 @@
                   <button type="button" onclick="document.getElementById('group-file-input').click()" class="p-2 text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl" title="Attach Local PDF or Image">
                     <span class="material-symbols-outlined text-xl">attach_file</span>
                   </button>
-                  <input type="text" id="group-msg-input" placeholder="Write a message or homework announcement to group..." class="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"/>
+                  <input type="text" id="group-msg-input" placeholder="Write a message or announcement to group..." class="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none"/>
                   <button type="submit" class="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md">
                     <span class="material-symbols-outlined text-xl">send</span>
                   </button>
@@ -931,7 +908,7 @@
 
       return `
         <div class="group-message relative flex items-start gap-3 ${isSelf ? 'flex-row-reverse' : ''}">
-          <img src="${senderAvatar}" alt="${msg.sender}" class="w-9 h-9 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0 mt-1"/>
+          ${renderAvatarHTML(senderAvatar, msg.sender, "w-9 h-9 text-xs")}
 
           <div class="max-w-[80%] space-y-1">
             <div class="flex items-center gap-2 ${isSelf ? 'justify-end' : ''}">
@@ -1037,13 +1014,13 @@
                 const prof = userProfiles[u.name] || u;
                 return `
                   <div onclick="selectedDMUser = USERS.find(x => x.name === '${u.name}'); render();" class="p-3.5 flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 ${isSelected ? 'bg-blue-50/80 dark:bg-blue-950/40 border-l-4 border-blue-600' : ''}">
-                    <img src="${prof.avatar}" alt="${u.name}" class="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"/>
+                    ${renderAvatarHTML(prof.avatar, u.name, "w-10 h-10 text-xs")}
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center justify-between">
                         <span class="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">${u.name}</span>
                         ${u.role === 'Admin' ? `<span class="px-1 text-[9px] font-bold rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">ADMIN</span>` : ''}
                       </div>
-                      <p class="text-[11px] text-slate-400 truncate mt-0.5">${prof.bio}</p>
+                      <p class="text-[11px] text-slate-400 truncate mt-0.5">${prof.bio || 'Scholar member'}</p>
                     </div>
                   </div>
                 `;
@@ -1055,13 +1032,13 @@
             ${selectedDMUser ? `
               <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                 <div class="flex items-center gap-3">
-                  <img src="${userProfiles[selectedDMUser.name]?.avatar || selectedDMUser.avatar}" class="w-10 h-10 rounded-full object-cover border border-blue-500"/>
+                  ${renderAvatarHTML(userProfiles[selectedDMUser.name]?.avatar, selectedDMUser.name, "w-10 h-10 text-xs")}
                   <div>
                     <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                       <span>${selectedDMUser.name}</span>
                       ${selectedDMUser.role === 'Admin' ? `<span class="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">ADMIN</span>` : ''}
                     </h3>
-                    <p class="text-[11px] text-slate-400">${userProfiles[selectedDMUser.name]?.bio || selectedDMUser.bio}</p>
+                    <p class="text-[11px] text-slate-400">${userProfiles[selectedDMUser.name]?.bio || 'Scholar member'}</p>
                   </div>
                 </div>
               </div>
